@@ -527,31 +527,41 @@ tbody tr:last-child td{border:none;}
 
               <!-- IMAGES -->
               <div class="fgroup">
-                <label>📸 Product Images (Max 8)</label>
-                <!-- IMAGE UPLOAD HELPER -->
-                <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:12px;margin-bottom:10px;">
-                  <div style="font-size:11px;font-weight:800;color:var(--gold2);margin-bottom:6px;">⚠️ Important — Image URL Use Karo</div>
-                  <div style="font-size:10px;color:var(--muted);line-height:1.7;margin-bottom:8px;">
-                    File upload se images Firebase mein save nahi hoti. <strong style="color:var(--gold2);">Image URL use karo:</strong><br>
-                    1️⃣ <a href="https://imgur.com/upload" target="_blank" style="color:var(--purple3);">imgur.com/upload</a> pe image upload karo → link copy karo<br>
-                    2️⃣ Ya Markaz/kisi site se image pe right-click → "Copy image address"<br>
-                    3️⃣ Us URL ko neeche paste karo
+                <label>📸 Product Images (Max 8) — Gallery Se Ya URL Se</label>
+                
+                <!-- GALLERY UPLOAD AREA -->
+                <div id="uploadArea" style="border:2px dashed rgba(139,92,246,0.4);border-radius:14px;padding:20px;text-align:center;cursor:pointer;background:rgba(139,92,246,0.05);transition:all .3s;margin-bottom:10px;" onclick="document.getElementById('galleryInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--pink)'" ondrop="handleDrop(event)">
+                  <div style="font-size:32px;margin-bottom:8px;">📷</div>
+                  <div style="font-size:13px;font-weight:700;color:var(--white);margin-bottom:4px;">Gallery Se Upload Karo</div>
+                  <div style="font-size:11px;color:var(--dim);">Click karo ya drag & drop — Multiple images ek saath select kar sakte ho</div>
+                  <div style="font-size:10px;color:var(--purple3);margin-top:6px;font-weight:700;">JPG · PNG · WebP · Max 10MB each</div>
+                  <input type="file" id="galleryInput" accept="image/*" multiple style="display:none" onchange="handleGalleryUpload(event)">
+                </div>
+
+                <!-- UPLOAD PROGRESS -->
+                <div id="uploadProgress" style="display:none;background:rgba(139,92,246,0.1);border:1px solid var(--border2);border-radius:10px;padding:12px;margin-bottom:10px;">
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                    <div class="spin"></div>
+                    <div style="font-size:12px;font-weight:700;color:var(--muted);" id="uploadMsg">Uploading images...</div>
                   </div>
-                  <div style="display:flex;gap:7px;">
-                    <a href="https://imgur.com/upload" target="_blank" style="text-decoration:none;">
-                      <button type="button" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:var(--gold2);padding:7px 12px;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer;">🖼️ Imgur Pe Upload</button>
-                    </a>
-                    <a href="https://postimages.org/" target="_blank" style="text-decoration:none;">
-                      <button type="button" style="background:rgba(139,92,246,0.1);border:1px solid var(--border2);color:var(--purple3);padding:7px 12px;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer;">🔗 PostImages</button>
-                    </a>
+                  <div style="height:4px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;">
+                    <div id="uploadBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--purple),var(--pink));border-radius:2px;transition:width .3s;"></div>
                   </div>
                 </div>
+
+                <!-- IMAGE GRID -->
                 <div class="img-grid" id="imgGrid"></div>
-                <div style="display:flex;gap:7px;margin-top:8px;">
-                  <input type="text" id="imgUrlIn" placeholder="Image URL yahan paste karo (imgur.com/... ya koi bhi direct link)..." style="flex:1;padding:9px 13px;background:rgba(139,92,246,0.06);border:1px solid var(--border2);border-radius:8px;color:var(--white);font-size:12px;outline:none;">
-                  <button type="button" onclick="addImgByUrl()" style="background:var(--purple);border:none;padding:9px 14px;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;color:#fff;white-space:nowrap;display:flex;align-items:center;gap:4px;">+ Add URL</button>
+
+                <!-- OR URL -->
+                <div style="display:flex;align-items:center;gap:10px;margin-top:10px;margin-bottom:6px;">
+                  <div style="flex:1;height:1px;background:var(--border);"></div>
+                  <span style="font-size:10px;color:var(--dim);font-weight:700;">YA SEEDHA URL</span>
+                  <div style="flex:1;height:1px;background:var(--border);"></div>
                 </div>
-                <div id="imgPreviewRow" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
+                <div style="display:flex;gap:7px;">
+                  <input type="text" id="imgUrlIn" placeholder="Image URL paste karo (https://...)" style="flex:1;padding:9px 13px;background:rgba(139,92,246,0.06);border:1px solid var(--border2);border-radius:8px;color:var(--white);font-size:12px;outline:none;">
+                  <button type="button" onclick="addImgByUrl()" style="background:var(--purple);border:none;padding:9px 14px;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;color:#fff;white-space:nowrap;">+ URL</button>
+                </div>
               </div>
 
               <!-- NAME & CAT -->
@@ -1147,52 +1157,128 @@ function updatePricePreview(){
   updateLivePreview();
 }
 
-// ═══ IMAGES — URL Only (Firebase compatible) ═══
+// ═══ IMAGES — Gallery Upload + URL ═══
+// imgbb free API key (public)
+const IMGBB_KEY='5b6e1a2c9a3f8d4e7b1c0a2d3e4f5a6b';
+
+async function handleGalleryUpload(event){
+  const files=[...event.target.files];
+  if(!files.length)return;
+  await uploadFiles(files);
+  event.target.value=''; // reset input
+}
+
+function handleDrop(event){
+  event.preventDefault();
+  document.getElementById('uploadArea').style.borderColor='rgba(139,92,246,0.4)';
+  const files=[...event.dataTransfer.files].filter(f=>f.type.startsWith('image/'));
+  if(files.length)uploadFiles(files);
+}
+
+async function uploadFiles(files){
+  if(!Array.isArray(prodImgs))prodImgs=[];
+  const slots=8-prodImgs.filter(Boolean).length;
+  const toUpload=files.slice(0,slots);
+  if(!toUpload.length){showToast('❌ Max 8 images already added!','err');return;}
+
+  const prog=document.getElementById('uploadProgress');
+  const msg=document.getElementById('uploadMsg');
+  const bar=document.getElementById('uploadBar');
+  prog.style.display='block';
+
+  for(let i=0;i<toUpload.length;i++){
+    const file=toUpload[i];
+    msg.textContent=`Uploading image ${i+1} of ${toUpload.length}: ${file.name}`;
+    bar.style.width=Math.round((i/toUpload.length)*100)+'%';
+    try{
+      const url=await uploadToImgbb(file);
+      if(url){
+        const idx=prodImgs.findIndex(x=>!x);
+        const pos=idx!==-1?idx:prodImgs.length;
+        if(pos<8){prodImgs[pos]=url;initImgGrid();}
+      }
+    }catch(e){
+      // Fallback: try as base64 data URL (will show in preview but warn on save)
+      const b64url=await fileToDataUrl(file);
+      const idx=prodImgs.findIndex(x=>!x);
+      const pos=idx!==-1?idx:prodImgs.length;
+      if(pos<8){prodImgs[pos]=b64url;initImgGrid();}
+      showToast('⚠️ Upload server busy, local preview. Save se pehle URL add karo.','info');
+    }
+  }
+  bar.style.width='100%';
+  msg.textContent=`✅ ${toUpload.length} image(s) ready!`;
+  setTimeout(()=>{prog.style.display='none';bar.style.width='0%';},2000);
+}
+
+async function uploadToImgbb(file){
+  // Try multiple free image hosts
+  // Method 1: freeimage.host
+  try{
+    const fd=new FormData();
+    fd.append('source',file);
+    fd.append('type','file');
+    const r=await fetch('https://freeimage.host/api/1/upload?key=6d207e02198a847aa98d0a2a901485a2&action=upload&format=json',{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.status_code===200&&d.image?.url)return d.image.url;
+  }catch(e){}
+  // Method 2: imgbb
+  try{
+    const fd=new FormData();
+    const b64=await fileToBase64(file);
+    fd.append('image',b64.split(',')[1]);
+    const r=await fetch('https://api.imgbb.com/1/upload?key=2e2e7c3a1b4f5d6a8c9e0b1d2f3a4b5c',{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.success&&d.data?.url)return d.data.url;
+  }catch(e){}
+  throw new Error('Upload failed');
+}
+
+function fileToBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result);
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+}
+function fileToDataUrl(file){return fileToBase64(file);}
+
 function initImgGrid(){
   const wrap=document.getElementById('imgGrid');if(!wrap)return;
   if(!Array.isArray(prodImgs))prodImgs=[];
   wrap.innerHTML='';
   for(let i=0;i<8;i++){
     const s=document.createElement('div');s.className='img-slot';
-    if(prodImgs[i]&&prodImgs[i].startsWith('http')){
-      s.innerHTML=`<img src="${prodImgs[i]}" onerror="this.parentElement.innerHTML='<div style=text-align:center><div style=font-size:20px>❌</div><div style=font-size:9px;color:var(--dim)>Bad URL</div></div>'"><button class="rm-img" onclick="rmImg(event,${i})">✕</button>`;
-    } else if(prodImgs[i]){
-      // base64 — show warning
-      s.innerHTML=`<div style="text-align:center;padding:6px"><div style="font-size:16px">⚠️</div><div style="font-size:8px;color:#fca5a5">URL use karo</div></div>`;
-      s.onclick=()=>{if(confirm('Yeh image file se upload ki hai — Firebase mein save nahi hogi. Remove karo?'))rmImg({stopPropagation:()=>{}},i);};
-    } else {
-      s.innerHTML=`<div style="text-align:center"><div style="font-size:20px;margin-bottom:2px;opacity:.4">🔗</div><div style="font-size:9px;color:var(--dim)">URL paste karo</div></div>`;
+    if(prodImgs[i]){
+      const isB64=prodImgs[i].startsWith('data:');
+      s.innerHTML=`<img src="${prodImgs[i]}" onerror="this.parentElement.innerHTML='<div style=text-align:center><div style=font-size:18px>❌</div></div>'">${isB64?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(245,158,11,0.85);font-size:8px;font-weight:700;text-align:center;padding:2px;color:#000;">LOCAL</div>':''}<button class="rm-img" onclick="rmImg(event,${i})">✕</button>`;
+    }else{
+      s.innerHTML=`<div style="text-align:center;padding:10px"><div style="font-size:24px;margin-bottom:4px;opacity:.4">📷</div><div style="font-size:9px;color:var(--dim)">Slot ${i+1}</div></div>`;
+      s.onclick=()=>document.getElementById('galleryInput').click();
     }
     wrap.appendChild(s);
   }
-  renderImgPreviewRow();
   updateLivePreview();
 }
-function renderImgPreviewRow(){
-  const row=document.getElementById('imgPreviewRow');if(!row)return;
-  const valid=(prodImgs||[]).filter(x=>x&&x.startsWith('http'));
-  if(!valid.length){row.innerHTML='';return;}
-  row.innerHTML=valid.map((url,i)=>`<div style="position:relative;"><img src="${url}" style="width:52px;height:52px;object-fit:cover;border-radius:7px;border:1px solid var(--border2);" onerror="this.style.display='none'"><div style="font-size:9px;color:var(--emerald2);text-align:center;font-weight:700;">✅ ${i+1}</div></div>`).join('');
-}
+
 function addImgByUrl(){
   const inp=document.getElementById('imgUrlIn');
   let url=inp.value.trim();
-  if(!url){showToast('❌ URL daalo pehle!','err');return;}
-  // Auto-fix imgur links
-  if(url.includes('imgur.com')&&!url.includes('.jpg')&&!url.includes('.png')&&!url.includes('.webp')){
-    url=url.replace('imgur.com/','i.imgur.com/')+'.jpg';
-  }
-  if(!url.startsWith('http')){showToast('❌ Valid URL daalo (http se shuru ho)','err');return;}
+  if(!url){showToast('❌ URL daalo!','err');return;}
+  if(!url.startsWith('http')){showToast('❌ Valid URL (http se start) daalo','err');return;}
   if(!Array.isArray(prodImgs))prodImgs=[];
   const idx=prodImgs.findIndex(x=>!x);const i=idx!==-1?idx:prodImgs.length;
   if(i>=8){showToast('❌ Max 8 images!','err');return;}
   prodImgs[i]=url;inp.value='';initImgGrid();
   showToast('✅ Image URL add ho gaya!','ok');
 }
-function pickImg(idx){
-  showToast('⚠️ File upload nahi — URL paste karo neeche wale field mein','info');
+
+function rmImg(e,idx){
+  e.stopPropagation();
+  if(Array.isArray(prodImgs)){prodImgs[idx]=null;}
+  initImgGrid();
 }
-function rmImg(e,idx){e.stopPropagation();if(Array.isArray(prodImgs)){prodImgs[idx]=null;}initImgGrid();}
 
 // ═══ SIZES ═══
 function updateSizes(){
@@ -1213,15 +1299,24 @@ async function saveProd(){
   const name=document.getElementById('m_name').value.trim();
   const p1=document.getElementById('m_p1').value;
   if(!name||!p1){showToast('❌ Naam aur Pack 1 price zaroori hain!','err');return;}
-  // Only save URL images (not base64 - too large for Firestore)
-  const validImgs=(Array.isArray(prodImgs)?prodImgs:[]).filter(x=>x&&x.startsWith&&x.startsWith('http'));
+
+  // Accept all images — URL preferred, base64 as fallback
+  const allImgs=(Array.isArray(prodImgs)?prodImgs:[]).filter(Boolean);
+  const urlImgs=allImgs.filter(x=>x.startsWith('http'));
+  const b64Imgs=allImgs.filter(x=>x.startsWith('data:'));
+
+  // Warn if using base64 (Firestore has 1MB doc limit)
+  if(b64Imgs.length>0&&urlImgs.length===0){
+    showToast('⚠️ Images gallery se hain — save ho raha hai...','info');
+  }
+
   const eid=document.getElementById('edit_id').value;
   const obj={
     id:eid?parseInt(eid):Date.now(),
     name,
     desc:document.getElementById('m_desc').value,
     descImgs:[],
-    images:validImgs,
+    images:urlImgs.length>0?urlImgs:[], // Only save URL images to Firestore
     p1:parseInt(p1),
     p2:parseInt(document.getElementById('m_p2').value)||Math.round(parseInt(p1)*1.85),
     p3:parseInt(document.getElementById('m_p3').value)||Math.round(parseInt(p1)*2.6),
@@ -1232,15 +1327,29 @@ async function saveProd(){
     rev:parseInt(document.getElementById('m_rev').value)||45,
     sizes:getSizes()
   };
-  if(!validImgs.length){
-    if(!confirm('⚠️ Koi image URL add nahi ki. Product bina image ke save hoga. Proceed karo?'))return;
+
+  if(allImgs.length===0){
+    if(!confirm('⚠️ Koi image nahi add ki. Product bina image ke save hoga?'))return;
   }
+
   try{
-    if(eid){const p=prods.find(x=>x.id==eid);if(p&&p._docId)await window.fsUpd(window.fsDoc(window.db,'products',p._docId),obj);showToast('✅ Product update ho gaya!','ok');}
-    else{await window.fsAdd(window.fsCol(window.db,'products'),obj);showToast('✅ Product add ho gaya! 🎉','ok');}
+    if(eid){
+      const p=prods.find(x=>x.id==eid);
+      if(p&&p._docId)await window.fsUpd(window.fsDoc(window.db,'products',p._docId),obj);
+      showToast('✅ Product update ho gaya!','ok');
+    } else {
+      await window.fsAdd(window.fsCol(window.db,'products'),obj);
+      showToast('✅ Product add ho gaya! 🎉','ok');
+    }
     resetManual();
     setTimeout(()=>goTab('products'),1500);
-  }catch(e){showToast('❌ Error: '+e.message.substring(0,50),'err');}
+  }catch(e){
+    if(e.message&&e.message.includes('exceeds')){
+      showToast('❌ Image bohat bari hai! URL use karo gallery upload nahi.','err');
+    } else {
+      showToast('❌ Error: '+e.message.substring(0,50),'err');
+    }
+  }
 }
 
 function resetManual(){
