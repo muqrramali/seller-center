@@ -528,11 +528,30 @@ tbody tr:last-child td{border:none;}
               <!-- IMAGES -->
               <div class="fgroup">
                 <label>📸 Product Images (Max 8)</label>
+                <!-- IMAGE UPLOAD HELPER -->
+                <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:12px;margin-bottom:10px;">
+                  <div style="font-size:11px;font-weight:800;color:var(--gold2);margin-bottom:6px;">⚠️ Important — Image URL Use Karo</div>
+                  <div style="font-size:10px;color:var(--muted);line-height:1.7;margin-bottom:8px;">
+                    File upload se images Firebase mein save nahi hoti. <strong style="color:var(--gold2);">Image URL use karo:</strong><br>
+                    1️⃣ <a href="https://imgur.com/upload" target="_blank" style="color:var(--purple3);">imgur.com/upload</a> pe image upload karo → link copy karo<br>
+                    2️⃣ Ya Markaz/kisi site se image pe right-click → "Copy image address"<br>
+                    3️⃣ Us URL ko neeche paste karo
+                  </div>
+                  <div style="display:flex;gap:7px;">
+                    <a href="https://imgur.com/upload" target="_blank" style="text-decoration:none;">
+                      <button type="button" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:var(--gold2);padding:7px 12px;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer;">🖼️ Imgur Pe Upload</button>
+                    </a>
+                    <a href="https://postimages.org/" target="_blank" style="text-decoration:none;">
+                      <button type="button" style="background:rgba(139,92,246,0.1);border:1px solid var(--border2);color:var(--purple3);padding:7px 12px;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer;">🔗 PostImages</button>
+                    </a>
+                  </div>
+                </div>
                 <div class="img-grid" id="imgGrid"></div>
                 <div style="display:flex;gap:7px;margin-top:8px;">
-                  <input type="text" id="imgUrlIn" placeholder="Ya image URL yahan paste karo..." style="flex:1;padding:9px 13px;background:rgba(139,92,246,0.06);border:1px solid var(--border2);border-radius:8px;color:var(--white);font-size:12px;outline:none;">
-                  <button onclick="addImgByUrl()" style="background:var(--purple);border:none;padding:9px 14px;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;color:#fff;white-space:nowrap;display:flex;align-items:center;gap:4px;">+ URL</button>
+                  <input type="text" id="imgUrlIn" placeholder="Image URL yahan paste karo (imgur.com/... ya koi bhi direct link)..." style="flex:1;padding:9px 13px;background:rgba(139,92,246,0.06);border:1px solid var(--border2);border-radius:8px;color:var(--white);font-size:12px;outline:none;">
+                  <button type="button" onclick="addImgByUrl()" style="background:var(--purple);border:none;padding:9px 14px;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;color:#fff;white-space:nowrap;display:flex;align-items:center;gap:4px;">+ Add URL</button>
                 </div>
+                <div id="imgPreviewRow" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
               </div>
 
               <!-- NAME & CAT -->
@@ -1128,34 +1147,50 @@ function updatePricePreview(){
   updateLivePreview();
 }
 
-// ═══ IMAGES ═══
+// ═══ IMAGES — URL Only (Firebase compatible) ═══
 function initImgGrid(){
   const wrap=document.getElementById('imgGrid');if(!wrap)return;
   if(!Array.isArray(prodImgs))prodImgs=[];
   wrap.innerHTML='';
   for(let i=0;i<8;i++){
     const s=document.createElement('div');s.className='img-slot';
-    if(prodImgs[i]){
-      s.innerHTML=`<img src="${prodImgs[i]}" onerror="this.parentElement.innerHTML='<span style=font-size:22px>❌</span>'"><button class="rm-img" onclick="rmImg(event,${i})">✕</button>`;
-    }else{
-      s.innerHTML=`<div style="text-align:center"><div style="font-size:20px;margin-bottom:2px;">📷</div><div style="font-size:9px;color:var(--dim);">Add</div></div>`;
-      s.onclick=()=>pickImg(i);
+    if(prodImgs[i]&&prodImgs[i].startsWith('http')){
+      s.innerHTML=`<img src="${prodImgs[i]}" onerror="this.parentElement.innerHTML='<div style=text-align:center><div style=font-size:20px>❌</div><div style=font-size:9px;color:var(--dim)>Bad URL</div></div>'"><button class="rm-img" onclick="rmImg(event,${i})">✕</button>`;
+    } else if(prodImgs[i]){
+      // base64 — show warning
+      s.innerHTML=`<div style="text-align:center;padding:6px"><div style="font-size:16px">⚠️</div><div style="font-size:8px;color:#fca5a5">URL use karo</div></div>`;
+      s.onclick=()=>{if(confirm('Yeh image file se upload ki hai — Firebase mein save nahi hogi. Remove karo?'))rmImg({stopPropagation:()=>{}},i);};
+    } else {
+      s.innerHTML=`<div style="text-align:center"><div style="font-size:20px;margin-bottom:2px;opacity:.4">🔗</div><div style="font-size:9px;color:var(--dim)">URL paste karo</div></div>`;
     }
     wrap.appendChild(s);
   }
+  renderImgPreviewRow();
   updateLivePreview();
 }
+function renderImgPreviewRow(){
+  const row=document.getElementById('imgPreviewRow');if(!row)return;
+  const valid=(prodImgs||[]).filter(x=>x&&x.startsWith('http'));
+  if(!valid.length){row.innerHTML='';return;}
+  row.innerHTML=valid.map((url,i)=>`<div style="position:relative;"><img src="${url}" style="width:52px;height:52px;object-fit:cover;border-radius:7px;border:1px solid var(--border2);" onerror="this.style.display='none'"><div style="font-size:9px;color:var(--emerald2);text-align:center;font-weight:700;">✅ ${i+1}</div></div>`).join('');
+}
 function addImgByUrl(){
-  const inp=document.getElementById('imgUrlIn');const url=inp.value.trim();if(!url)return;
+  const inp=document.getElementById('imgUrlIn');
+  let url=inp.value.trim();
+  if(!url){showToast('❌ URL daalo pehle!','err');return;}
+  // Auto-fix imgur links
+  if(url.includes('imgur.com')&&!url.includes('.jpg')&&!url.includes('.png')&&!url.includes('.webp')){
+    url=url.replace('imgur.com/','i.imgur.com/')+'.jpg';
+  }
+  if(!url.startsWith('http')){showToast('❌ Valid URL daalo (http se shuru ho)','err');return;}
   if(!Array.isArray(prodImgs))prodImgs=[];
   const idx=prodImgs.findIndex(x=>!x);const i=idx!==-1?idx:prodImgs.length;
   if(i>=8){showToast('❌ Max 8 images!','err');return;}
-  prodImgs[i]=url;inp.value='';initImgGrid();showToast('✅ Image added!','ok');
+  prodImgs[i]=url;inp.value='';initImgGrid();
+  showToast('✅ Image URL add ho gaya!','ok');
 }
 function pickImg(idx){
-  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
-  inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{if(!Array.isArray(prodImgs))prodImgs=[];prodImgs[idx]=ev.target.result;initImgGrid();};r.readAsDataURL(f);};
-  inp.click();
+  showToast('⚠️ File upload nahi — URL paste karo neeche wale field mein','info');
 }
 function rmImg(e,idx){e.stopPropagation();if(Array.isArray(prodImgs)){prodImgs[idx]=null;}initImgGrid();}
 
@@ -1178,13 +1213,15 @@ async function saveProd(){
   const name=document.getElementById('m_name').value.trim();
   const p1=document.getElementById('m_p1').value;
   if(!name||!p1){showToast('❌ Naam aur Pack 1 price zaroori hain!','err');return;}
+  // Only save URL images (not base64 - too large for Firestore)
+  const validImgs=(Array.isArray(prodImgs)?prodImgs:[]).filter(x=>x&&x.startsWith&&x.startsWith('http'));
   const eid=document.getElementById('edit_id').value;
   const obj={
     id:eid?parseInt(eid):Date.now(),
     name,
     desc:document.getElementById('m_desc').value,
     descImgs:[],
-    images:(Array.isArray(prodImgs)?prodImgs:[]).filter(Boolean),
+    images:validImgs,
     p1:parseInt(p1),
     p2:parseInt(document.getElementById('m_p2').value)||Math.round(parseInt(p1)*1.85),
     p3:parseInt(document.getElementById('m_p3').value)||Math.round(parseInt(p1)*2.6),
@@ -1195,10 +1232,14 @@ async function saveProd(){
     rev:parseInt(document.getElementById('m_rev').value)||45,
     sizes:getSizes()
   };
+  if(!validImgs.length){
+    if(!confirm('⚠️ Koi image URL add nahi ki. Product bina image ke save hoga. Proceed karo?'))return;
+  }
   try{
     if(eid){const p=prods.find(x=>x.id==eid);if(p&&p._docId)await window.fsUpd(window.fsDoc(window.db,'products',p._docId),obj);showToast('✅ Product update ho gaya!','ok');}
-    else{await window.fsAdd(window.fsCol(window.db,'products'),obj);showToast('✅ Product add ho gaya!','ok');}
+    else{await window.fsAdd(window.fsCol(window.db,'products'),obj);showToast('✅ Product add ho gaya! 🎉','ok');}
     resetManual();
+    setTimeout(()=>goTab('products'),1500);
   }catch(e){showToast('❌ Error: '+e.message.substring(0,50),'err');}
 }
 
